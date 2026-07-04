@@ -57,7 +57,7 @@
         </header>
 
         <div id="loginPanel" class="glass-card rounded-2xl p-4 shadow-xl border border-indigo-500/20 space-y-3">
-            <label class="block text-xs font-semibold uppercase tracking-wider text-indigo-400"><i class="fa-solid fa-shield-halved mr-1"></i> Google Apps Script Authorization</label>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-indigo-400"><i class="fa-solid fa-shield-halved mr-1"></i> Client Verification Suite</label>
             <div class="flex gap-2">
                 <input type="password" id="passcodeInput" placeholder="Enter server password..." class="w-full bg-slate-950/60 border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-slate-100">
                 <button id="loginBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors cursor-pointer min-w-[80px]">
@@ -146,8 +146,9 @@
     </div>
 
     <script>
-        // ⚠️ ENTIRE SETUP CONFIG: Boshay din apnar exact Deployment Web App URL link
+        // ⚠️ API SETTINGS CONFIG
         const API_URL = "https://script.google.com/macros/s/AKfycbziON-Y_nRpZjZGcywIihk8PCpkXl5tBLyPjlv4j_dj-mx87xK0VbsNlODvIa3reXqJkg/exec"; 
+        const FRONTEND_PASSWORD = "23/05/1999"; // Strict Client Validation Variable
         const ITEMS_PER_PAGE = 9; 
 
         const dropZone = document.getElementById('dropZone');
@@ -200,71 +201,40 @@
         refreshBtn.addEventListener('click', () => { if(!isUploading) fetchGallery(); });
         lockIndicatorBtn.addEventListener('click', () => { if (isAuthorized) window.location.reload(); });
 
-        // 🟢 ADVANCED MOBILE SYNC LOGIN HANDLER CONTROLLER
-        loginBtn.addEventListener('click', async () => {
+        // 🟢 INSTANT CLIENT-SIDE VALIDATION CONTROL (No Checking freeze loop)
+        loginBtn.addEventListener('click', () => {
             const val = passcodeInp.value.trim();
             if(val === "") return;
             
             loginBtn.disabled = true; 
             loginBtnText.innerText = "Checking...";
             
-            try {
-                const targetUrl = `${API_URL}?checkToken=${encodeURIComponent(val)}&_nocache=${Date.now()}`;
-                const response = await fetch(targetUrl, {
-                    method: 'GET',
-                    mode: 'cors',
-                    headers: { 'Accept': 'application/json' }
-                });
-                
-                const data = await response.json();
-                
-                if (data && data.status === "SUCCESS") {
-                    unlockAppSuite(val);
+            setTimeout(() => {
+                if (val === FRONTEND_PASSWORD) {
+                    userToken = val; 
+                    isAuthorized = true;
+                    loginPanel.classList.add('hidden');
+                    lockIndicatorBtn.className = "absolute right-0 top-2 bg-slate-900/60 hover:bg-slate-800 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5 text-emerald-400 cursor-pointer";
+                    lockIcon.className = "fa-solid fa-lock-open"; 
+                    lockStatusText.innerText = "Unlocked";
+                    dropZone.classList.remove('disabled-zone'); 
+                    dropZone.classList.add('cursor-pointer'); 
+                    fileInput.disabled = false;
+                    dropZoneContent.innerHTML = `<div class="text-2xl text-indigo-400"><i class="fa-solid fa-images"></i></div><p class="text-xs font-medium text-slate-300">System Ready. Upload assets.</p>`;
+                    fetchGallery(); // Trigger gallery loading instantly upon unlock
                 } else {
-                    triggerPassError();
+                    alert("🔴 Incorrect Password!");
+                    passcodeInp.value = ""; 
+                    loginBtn.disabled = false; 
+                    loginBtnText.innerText = "Verify";
                 }
-            } catch (error) {
-                // Fallback direct handling via clean window injection pipeline mapping
-                window.handleAppsScriptAuth = function(response) {
-                    if (response && response.status === "SUCCESS") {
-                        unlockAppSuite(val);
-                    } else {
-                        triggerPassError();
-                    }
-                    const s = document.getElementById('jsonpAuthScript'); if(s) s.remove();
-                };
-
-                const oldScript = document.getElementById('jsonpAuthScript'); if(oldScript) oldScript.remove();
-                const script = document.createElement('script'); 
-                script.id = 'jsonpAuthScript';
-                script.src = `${API_URL}?checkToken=${encodeURIComponent(val)}&callback=handleAppsScriptAuth&_nocache=${Date.now()}`;
-                
-                script.onerror = function() {
-                    alert("Handshake error. Please ensure Web App setup allows Anyone access.");
-                    loginBtn.disabled = false; loginBtnText.innerText = "Verify";
-                };
-                document.body.appendChild(script);
-            }
+            }, 300); // 300ms ultra-fast responsive micro delay
         });
-
-        function unlockAppSuite(tokenVal) {
-            userToken = tokenVal; isAuthorized = true;
-            loginPanel.classList.add('hidden');
-            lockIndicatorBtn.className = "absolute right-0 top-2 bg-slate-900/60 hover:bg-slate-800 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5 text-emerald-400 cursor-pointer";
-            lockIcon.className = "fa-solid fa-lock-open"; lockStatusText.innerText = "Unlocked";
-            dropZone.classList.remove('disabled-zone'); dropZone.classList.add('cursor-pointer'); fileInput.disabled = false;
-            dropZoneContent.innerHTML = `<div class="text-2xl text-indigo-400"><i class="fa-solid fa-images"></i></div><p class="text-xs font-medium text-slate-300">System Ready. Upload assets.</p>`;
-        }
-
-        function triggerPassError() {
-            alert("🔴 Incorrect Password!");
-            passcodeInp.value = ""; loginBtn.disabled = false; loginBtnText.innerText = "Verify";
-        }
 
         dropZone.addEventListener('click', () => { if (!isUploading && isAuthorized) fileInput.click(); });
         fileInput.addEventListener('change', (e) => { if (!isUploading && isAuthorized) handleImageUpload(e.target.files); });
 
-        // 🟢 FLUID PIPELINE GRADIENT STREAM ENGINE
+        // 🟢 FLUID PROGRESS BAR ENGINE
         async function handleImageUpload(files) {
             const imageFiles = Array.from(files).filter(file => file.type.startsWith("image/"));
             if (imageFiles.length === 0) return;
@@ -309,7 +279,7 @@
                     progressBar.style.width = `${nextTargetPercent}%`; 
                     smoothAnimateNumber(nextTargetPercent);
                 } catch (error) { 
-                    alert("Upload latency fault: " + error.message); clearInterval(percentInterval); break; 
+                    alert("Upload latent fault: " + error.message); clearInterval(percentInterval); break; 
                 }
             }
 
@@ -377,7 +347,6 @@
             paginationContainer.classList.remove('hidden');
         }
 
-        // 🟢 COMPACT 6-7 WINDOW INTERFACES SLIDING METHOD
         function buildNumericPaginationEngine(totalPages) {
             numericPagination.innerHTML = '';
             let startPage, endPage;
