@@ -621,7 +621,31 @@
             }
         });
     
-    
+    // 🟢 AUTOMATIC BACK-PAGE SYNC ENGINE (Lighbox Navigation Update)
+        function navigateLightbox(direction) {
+            let targetIndex = currentGlobalIndex;
+
+            if (direction === 'next') {
+                if (currentGlobalIndex < fetchedImages.length - 1) targetIndex = currentGlobalIndex + 1;
+                else targetIndex = 0; // Circular loop setup
+            } else if (direction === 'prev') {
+                if (currentGlobalIndex > 0) targetIndex = currentGlobalIndex - 1;
+                else targetIndex = fetchedImages.length - 1; // Reverse circular loop
+            }
+
+            // 1. Calculate active target page using context index mapping node
+            // ITEMS_PER_PAGE onujayi dynamic page location validation matrix calculation
+            const targetPage = Math.floor(targetIndex / ITEMS_PER_PAGE) + 1;
+
+            // 2. Jodi navigation-er fole page change hoy, tobe background layout grid change hobe
+            if (currentPage !== targetPage) {
+                currentPage = targetPage;
+                renderPaginatedGallery(); // Background grid instantly updated!
+            }
+
+            // 3. Close na kore dynamically next photo structure open kora hobe
+            openLightbox(targetIndex);
+        }
         
     
     </script>
